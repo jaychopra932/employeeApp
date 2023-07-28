@@ -16,22 +16,32 @@ next();
 var port=process.env.PORT||2410
 app.listen(port,() =>console. log(`Node App listening on port ${port}!`))
 
-let mysql=require("mysql")
-let connData={
-    host:"localhost",
-    user:"root",
-    password:"",
-    database:"storagenew2"
-}
-
+// let mysql=require("mysql")
+// let connData={
+//     host:"localhost",
+//     user:"root",
+//     password:"",
+//     database:"storagenew2"
+// }
+const {Client}=require("pg")
+const client=new Client({
+    user:"postgres",
+    password:"jaychopra932@gmail.com",
+    database:"postgres",
+    port:5432,
+    host:"db.zwpjdnlwasupjnravaab.supabase.co",
+    ssl:{rejectUnauthorized:false}
+})
+client.connect(function(res,err){
+    console.log("Connected!!!")
+})
 app.get("/EmpApp/employees",function(req,res){
-    let connection=mysql.createConnection(connData)
     let {dept,desig,gender,sortBy}=req.query
     let sql="SELECT * FROM employees"
-    connection.query(sql,function(err,result){
+    client.query(sql,function(err,result){
         if(err) res.status(404).send("No Data Found")
         else{
-            let arr=[...result]
+            let arr=[...result.rows]
             if(dept){
                 arr=arr.filter((a)=>a.department==dept)
             }
@@ -60,78 +70,82 @@ app.get("/EmpApp/employees",function(req,res){
                 arr=arr.sort((a,b)=>a.designation.localeCompare(b.designation))
             }
             res.send(arr)
+    
         }
     })
 })
 app.get("/EmpApp/employees/:id",function(req,res){
-    let id=req.params.id
-    let connection=mysql.createConnection(connData)
-    let sql="SELECT * FROM employees WHERE empCode=?"
-    connection.query(sql,id,function(err,result){
+    let id=+req.params.id
+    let sql=`Select * from employees where "employees"."empCode"=${id}`
+    client.query(sql,function(err,result){
         if(err) res.status(404).send("No Data Found")
         else{ 
-            res.send(result)
+            res.send(result.rows)
         }
     })
     
 })
 app.get("/EmpApp/department/:dep",function(req,res){
     let dep=req.params.dep
-    let connection=mysql.createConnection(connData)
+    // let client=mysql.createConnection(connData)
     let sql="SELECT * FROM employees"
-    connection.query(sql,function(err,result){
+    client.query(sql,function(err,result){
         if(err) res.status(404).send("No Data Found")
         else{ 
-            let arr=result.filter((a)=>a.department==dep)
+            let arr=result.rows.filter((a)=>a.department==dep)
             res.send(arr)
         }
+
     })
 })
 app.get("/EmpApp/designation/:desig",function(req,res){
     let desig=req.params.desig
-    let connection=mysql.createConnection(connData)
+    // let client=mysql.createConnection(connData)
     let sql="SELECT * FROM employees"
-    connection.query(sql,function(err,result){
+    client.query(sql,function(err,result){
         if(err) res.status(404).send("No Data Found")
         else{ 
-            let arr=result.filter((a)=>a.designation==desig)
+            let arr=result.rows.filter((a)=>a.designation==desig)
             res.send(arr)
         }
+
     })
 })
 app.post("/EmpApp/employees",function(req,res){
-    let connection=mysql.createConnection(connData)
+    // let client=mysql.createConnection(connData)
     let body=req.body
-    let arr=[body.empCode,body.name,body.gender,body.salary,body.department,body.designation]
-    let sql="INSERT INTO  employees(empCode,name,gender,salary,department,designation) VALUES ?"
-    connection.query(sql,[[arr]],function(err,result){
+    let sql=`INSERT INTO  employees VALUES (${body.empCode},'${body.name}','${body.department}','${body.designation}',${body.salary},'${body.gender}')`
+    
+    client.query(sql,function(err,result){
         if(err) res.status(404).send(err)
         else{ 
             res.send("Inserted")
         }
+
     })
 })
 app.put("/EmpApp/employees/:id",function(req,res){
     let id=+req.params.id
-    let connection=mysql.createConnection(connData)
     let body=req.body
-    let sql="UPDATE employees SET empCode=?,name=?,gender=?,salary=?,department=?,designation=? WHERE empCode=?"
-    connection.query(sql,[body.empCode,body.name,body.gender,body.salary,body.department,body.designation,id],function(err,result){
+    let sql=`UPDATE employees SET name='${body.name}',gender='${body.gender}',salary=${body.salary},department='${body.department}',designation='${body.designation}' WHERE "employees"."empCode"=${id}`
+    client.query(sql,function(err,result){
         if(err) res.status(404).send(err)
         else{ 
             res.send("Inserted")
         }
+
     })
 })
 app.delete("/EmpApp/employees/:id",function(req,res){
     let id=+req.params.id
-    let connection=mysql.createConnection(connData)
-    let body=req.body
-    let sql="DELETE FROM employees WHERE empCode=?"
-    connection.query(sql,id,function(err,result){
+    // let client=mysql.createConnection(connData)
+    let sql=`DELETE FROM employees WHERE "employees"."empCode"=${id};`
+    client.query(sql,function(err,result){
         if(err) res.status(404).send(err)
         else{ 
+            console.log("deleted")
             res.send("DELETED")
         }
+
     })
 })
